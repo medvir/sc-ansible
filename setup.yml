@@ -1,0 +1,125 @@
+---
+#
+# Set up timavo
+#
+
+- hosts: uzh
+  remote_user: ubuntu
+  become: yes
+
+
+  tasks:
+
+    - name: Ensure sysadmin SSH keys are authorized for user 'ubuntu'
+      authorized_key: user="ubuntu" key="{{ item }}"
+      with_file:
+        - ~/.ssh/oct2016.key.pub
+
+    - name: Mount bora on /rv_home
+      mount:
+        name: /rv_home
+        src: /dev/vdb
+        state: mounted
+        fstype: ext4
+
+    - name: Mount passat on /data
+      mount:
+        name: /data
+        src: /dev/vdc
+        state: mounted
+        fstype: ext4
+
+    - name: Mount passat on /analyses
+      mount:
+        name: /analyses
+        src: /dev/vdd
+        state: mounted
+        fstype: ext4
+
+    #
+    # Install required SW from Ubuntu repos
+    #
+
+    - name: Update package cache (once per day)
+      apt:
+        update_cache=yes
+        cache_valid_time=86400
+
+    # had to comment this out as it fails
+    # - name: Remove dependency packages
+    #   apt:
+    #     autoremove=yes
+
+    - name: Upgrade all installed packages to latest version
+      apt:
+        upgrade=yes
+
+    - name: Install required software
+      apt:
+        name={{ item }}
+        state=latest
+      with_items:
+        - automake
+        - build-essential
+        - bwa
+        - cmake
+        - docker
+        - emboss
+        - libncurses5-dev
+        - libtool
+        - libwww-perl
+        - muscle
+        - r-cran-ggplot2
+        - seqtk
+        - smalt
+        - tabix
+        - unzip
+        - velvet
+        - velvetoptimiser
+        - zlib1g-dev
+
+    #
+    # SW not available from std Ubuntu repos installed from a script
+    #
+
+    - name: manuall install addional software from script
+      script: timavosoft.sh
+
+    # Users
+
+    - name: Create ngs group
+      tags:
+        - passwd
+      group:
+        name={{item}}
+        state=present
+      with_items:
+        - ngs
+
+    - name: Create accounts
+      tags:
+        - passwd
+      user:
+        name={{item.name}}
+        group={{item.group}}
+        home="/rv_home/{{item.name}}"
+        shell={{item.shell}}
+      with_items:
+        - { name: 'ozagordi', group: 'ngs', shell: '/bin/bash' }
+        - { name: 'mihuber',  group: 'ngs', shell: '/bin/bash' }
+        - { name: 'geifa',    group: 'ngs', shell: '/bin/bash' }
+        - { name: 'merles',   group: 'ngs', shell: '/bin/bash' }
+        - { name: 'vkufne',   group: 'ngs', shell: '/bin/bash' }
+        - { name: 'dlewan',   group: 'ngs', shell: '/bin/bash' }
+
+    - name: Add ssh authorized keys
+      authorized_key:
+          user={{item.user}}
+          key={{item.key}}
+      with_items:
+          - { user: 'ozagordi', key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_rsa.pub') }}" }
+          - { user: 'mihuber', key: "{{ lookup('file', 'keys/mihuber') }}" }
+          - { user: 'geifa', key: "{{ lookup('file', 'keys/geifa') }}" }
+          - { user: 'merles', key: "{{ lookup('file', 'keys/merles') }}" }
+          - { user: 'vkufne', key: "{{ lookup('file', 'keys/vkufne') }}" }
+          - { user: 'dlewan', key: "{{ lookup('file', 'keys/dlewan') }}" }
