@@ -50,9 +50,9 @@
     #   apt:
     #     autoremove=yes
 
-    - name: Upgrade all installed packages to latest version
-      apt:
-        upgrade=yes
+    # - name: Upgrade all installed packages to latest version
+    #   apt:
+    #     upgrade=yes
 
     - name: Install required software
       apt:
