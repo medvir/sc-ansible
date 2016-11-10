@@ -7,6 +7,9 @@
   remote_user: ubuntu
   become: yes
 
+  roles:
+      - seqtools
+      - conda
 
   tasks:
 
@@ -82,8 +85,14 @@
     # SW not available from std Ubuntu repos installed from a script
     #
 
-    - name: manuall install addional software from script
-      script: timavosoft.sh
+#    - name: manuall install addional software from script
+#      script: timavosoft.sh
+
+    - name: Install rmate standalone from https://github.com/aurora/rmate
+      get_url:
+        url: https://raw.githubusercontent.com/aurora/rmate/master/rmate
+        dest: /usr/local/bin/rmate
+        mode: a+x
 
     # Users
 
@@ -123,3 +132,15 @@
           - { user: 'merles', key: "{{ lookup('file', 'keys/merles') }}" }
           - { user: 'vkufne', key: "{{ lookup('file', 'keys/vkufne') }}" }
           - { user: 'dlewan', key: "{{ lookup('file', 'keys/dlewan') }}" }
+
+    - name: Add directories to PATH
+      lineinfile: dest=/rv_home/{{item.user}}/.bash_profile
+                  line="export PATH=$PATH:/usr/local/edirect:/usr/local/vcflib"
+                  create=yes
+      with_items:
+        - { user: "ozagordi" }
+        - { user: "mihuber" }
+        - { user: "geifa" }
+        - { user: "merles" }
+        - { user: "vkufne" }
+        - { user: "dlewan" }
