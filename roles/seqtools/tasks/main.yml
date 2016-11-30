@@ -45,8 +45,10 @@
   shell: |
     if [ ! -x "$(command -v lofreq)" ]; then
         cd /tmp
-        wget -nv -O - https://github.com/CSB5/lofreq/archive/v2.1.2.tar.gz | tar -xz
-        cd lofreq-2.1.2
+        # wget -nv -O - https://github.com/CSB5/lofreq/archive/v2.1.2.tar.gz | tar -xz
+        git clone https://github.com/ozagordi/lofreq.git
+        # cd lofreq-2.1.2
+        cd lofreq
         wget -nv -O - http://downloads.sourceforge.net/project/samtools/samtools/1.1/samtools-1.1.tar.bz2 | tar -xj
         cd samtools-1.1
         make -j 8
@@ -66,12 +68,7 @@
         git clone --recursive git://github.com/ekg/freebayes.git
         cd freebayes
         # multiple makes are necessary
-        sudo make -j 8
-        sudo make
-        sudo make install
-        cd vcflib && sudo make -j 8
-        sudo mkdir /usr/local/vcflib && sudo install -t /usr/local/vcflib /tmp/freebayes/vcflib/bin/*
-        cd ../..
+        sudo make && sudo make install
     fi
   args:
     executable: /bin/bash
@@ -86,6 +83,19 @@
     fi
   args:
     executable: /bin/bash
+
+- name: Install vcflib
+  shell: |
+    if [ ! -x "/usr/local/vcflib/vcf2fasta" ]; then
+        cd /tmp
+        git clone --recursive https://github.com/gusefve/vcflib.git
+        cd vcflib && sudo make
+        sudo rm -rf /usr/local/vcflib
+        sudo mkdir /usr/local/vcflib && sudo install -t /usr/local/vcflib /tmp/vcflib/bin/*
+        cd ../..
+    fi
+  args:
+      executable: /bin/bash
 
 - name: Download edirect tools
   get_url:
@@ -102,3 +112,22 @@
     fi
   args:
     executable: /bin/bash
+
+- name: Make picard directory
+  file: path=/usr/local/picard-tools state=directory mode=0755
+
+- name: Install picard
+  get_url:
+    url: https://github.com/broadinstitute/picard/releases/download/2.7.1/picard.jar
+    dest: /usr/local/picard-tools/picard.jar
+
+# - name: Install poretools
+#   shell: |
+#     if [ ! -x "/usr/local/poretools" ]; then
+#         cd /tmp
+#         git clone https://github.com/arq5x/poretools
+#         cd poretools
+#         sudo python setup.py install
+#     fi
+#   args:
+#     executable: /bin/bash

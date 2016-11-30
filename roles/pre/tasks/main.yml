@@ -1,0 +1,55 @@
+---
+
+#
+# Install required SW from Ubuntu repos
+#
+
+- name: Update package cache (once per day)
+  apt:
+    update_cache=yes
+    cache_valid_time=86400
+
+- debug: msg="System has updated cache"
+
+# had to comment this out as it fails
+# - name: Remove dependency packages
+#   apt:
+#     autoremove=yes
+
+- name: Upgrade all installed packages to latest version
+  apt:
+    upgrade=yes
+
+- name: Install required software
+  apt:
+    name={{ item }}
+    state=latest
+    update_cache=yes
+  with_items:
+    - acl
+    - automake
+    - build-essential
+    - bwa
+    - cmake
+    - cython
+    - default-jre
+    - docker.io
+    - emboss
+    - libfreetype6-dev
+    - libhdf5-serial-dev
+    - libncurses5-dev
+    - libtool
+    - libwww-perl
+    - make
+    - muscle
+    - pkg-config
+    - python-dev
+    - python-setuptools
+    - r-cran-ggplot2
+    - seqtk
+    - smalt
+    - tabix
+    - unzip
+    - velvet
+    - velvetoptimiser
+    - zlib1g-dev

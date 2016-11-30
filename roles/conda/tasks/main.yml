@@ -1,9 +1,26 @@
 ---
+- name: Change group of /opt
+  file:
+    path: /opt
+    owner: ubuntu
+    group: ngs
+    mode: 0775
+
+# http://bencane.com/2012/05/27/acl-using-access-control-lists-on-linux/
+- name: Seta acl such that newly created files have right permissions
+  acl:
+    name: /opt
+    entity: ngs
+    etype: group
+    permissions: rwx
+    default: yes
+    state: present
 
 - name: Download miniconda
   get_url:
     url: https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
     dest: /tmp/miniconda.sh
+    checksum: sha1:f43e58f0f2d2f64dcd4924edb8fbd4f4654db086
   register: get_miniconda
 
 - name: Install miniconda and packages
@@ -19,6 +36,14 @@
   args:
       executable: /bin/bash
 
+- name: Change group of /opt/miniconda
+  file:
+    path: /opt/miniconda
+    owner: ubuntu
+    group: ngs
+    mode: 0775
+    recurse: yes
+
 - name: Install VirMet
   shell: |
     if [ ! -x "/opt/miniconda/bin/virmet" ]; then
@@ -26,7 +51,19 @@
         rm -rf VirMet
         git clone --depth=50 --branch=master https://github.com/ozagordi/VirMet.git \
             && cd /opt/VirMet \
-            && /opt/miniconda/bin/python3 setup.py install
+            && /opt/miniconda/bin/python3 setup.py install --record installed_files.txt
+    fi
+  args:
+      executable: /bin/bash
+
+- name: Install MinVar
+  shell: |
+    if [ ! -x "/opt/miniconda/bin/minvar" ]; then
+        cd /opt
+        rm -rf MinVar
+        git clone --depth=50 --branch=master https://github.com/ozagordi/MinVar.git \
+            && cd /opt/MinVar \
+            && /opt/miniconda/bin/python3 setup.py install --record installed_files.txt
     fi
   args:
       executable: /bin/bash

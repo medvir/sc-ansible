@@ -8,6 +8,7 @@
   become: yes
 
   roles:
+      - pre
       - seqtools
       - conda
 
@@ -39,54 +40,23 @@
         state: mounted
         fstype: ext4
 
-    #
-    # Install required SW from Ubuntu repos
-    #
 
-    - name: Update package cache (once per day)
+    - name: Update apt-key to install mongo DB
+      apt_key: keyserver=hkp://keyserver.ubuntu.com:80 id=EA312927
+
+    - name: Create a list file for mongo DB
+      lineinfile: dest=/etc/apt/sources.list.d/mongodb-org-3.2.list
+                  line="deb http://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.2 multiverse"
+                  create=yes
+
+    - name: Update repositories cache and install "mongdb" package
       apt:
-        update_cache=yes
-        cache_valid_time=86400
-
-    # had to comment this out as it fails
-    # - name: Remove dependency packages
-    #   apt:
-    #     autoremove=yes
-
-    # - name: Upgrade all installed packages to latest version
-    #   apt:
-    #     upgrade=yes
-
-    - name: Install required software
-      apt:
-        name={{ item }}
-        state=latest
-      with_items:
-        - automake
-        - build-essential
-        - bwa
-        - cmake
-        - docker
-        - emboss
-        - libncurses5-dev
-        - libtool
-        - libwww-perl
-        - muscle
-        - r-cran-ggplot2
-        - seqtk
-        - smalt
-        - tabix
-        - unzip
-        - velvet
-        - velvetoptimiser
-        - zlib1g-dev
+        name: mongodb-org
+        update_cache: yes
 
     #
     # SW not available from std Ubuntu repos installed from a script
     #
-
-#    - name: manuall install addional software from script
-#      script: timavosoft.sh
 
     - name: Install rmate standalone from https://github.com/aurora/rmate
       get_url:
@@ -104,6 +74,7 @@
         state=present
       with_items:
         - ngs
+        - docker
 
     - name: Create accounts
       tags:
@@ -111,15 +82,16 @@
       user:
         name={{item.name}}
         group={{item.group}}
+        groups={{item.groups}}
         home="/rv_home/{{item.name}}"
         shell={{item.shell}}
       with_items:
-        - { name: 'ozagordi', group: 'ngs', shell: '/bin/bash' }
-        - { name: 'mihuber',  group: 'ngs', shell: '/bin/bash' }
-        - { name: 'geifa',    group: 'ngs', shell: '/bin/bash' }
-        - { name: 'merles',   group: 'ngs', shell: '/bin/bash' }
-        - { name: 'vkufne',   group: 'ngs', shell: '/bin/bash' }
-        - { name: 'dlewan',   group: 'ngs', shell: '/bin/bash' }
+        - { name: 'ozagordi', group: 'ngs', groups: 'docker', shell: '/bin/bash' }
+        - { name: 'mihuber',  group: 'ngs', groups: 'docker', shell: '/bin/bash' }
+        - { name: 'geifa',    group: 'ngs', groups: 'docker', shell: '/bin/bash' }
+        - { name: 'merles',   group: 'ngs', groups: 'docker', shell: '/bin/bash' }
+        - { name: 'vkufne',   group: 'ngs', groups: 'docker', shell: '/bin/bash' }
+        - { name: 'dlewan',   group: 'ngs', groups: 'docker', shell: '/bin/bash' }
 
     - name: Add ssh authorized keys
       authorized_key:
@@ -135,7 +107,7 @@
 
     - name: Add directories to PATH
       lineinfile: dest=/rv_home/{{item.user}}/.bash_profile
-                  line="export PATH=$PATH:/usr/local/edirect:/usr/local/vcflib"
+                  line="export PATH=$PATH:/usr/local/edirect:/usr/local/vcflib:/opt/miniconda/bin"
                   create=yes
       with_items:
         - { user: "ozagordi" }
