@@ -40,7 +40,6 @@
         state: mounted
         fstype: ext4
 
-
     - name: Update apt-key to install mongo DB
       apt_key: keyserver=hkp://keyserver.ubuntu.com:80 id=EA312927
 
@@ -116,3 +115,26 @@
         - { user: "merles" }
         - { user: "vkufne" }
         - { user: "dlewan" }
+
+    - name: Change group of mounted directories
+      file:
+        path={{item}}
+        owner=ubuntu
+        group=ngs
+        mode=0775
+      with_items:
+          - /data
+          - /analyses
+
+    # http://bencane.com/2012/05/27/acl-using-access-control-lists-on-linux/
+    - name: Seta acl such that newly created files have right permissions
+      acl:
+        name={{item}}
+        entity=ngs
+        etype=group
+        permissions=rwx
+        default=yes
+        state=present
+      with_items:
+          - /data
+          - /analyses
