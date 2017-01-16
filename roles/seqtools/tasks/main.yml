@@ -1,13 +1,14 @@
 ---
 
-- name: Download blast
-  get_url:
-    url: ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST//ncbi-blast-2.5.0+-x64-linux.tar.gz
-    dest: /tmp/ncbi-blast-2.5.0+-x64-linux.tar.gz
-  register: get_blast
-
-- debug: msg="blast was downloaded"
-  when: get_blast|changed
+# - name: Download blast
+#   get_url:
+#     url: ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.5.0/ncbi-blast-2.5.0+-x64-linux.tar.gz
+#     # url: ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.6.0/ncbi-blast-2.6.0+-x64-linux.tar.gz
+#     dest: /tmp/ncbi-blast-2.5.0+-x64-linux.tar.gz
+#   register: get_blast
+#
+# - debug: msg="blast was downloaded"
+#   when: get_blast|changed
 
 - name: Install blast
   shell: |
