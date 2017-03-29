@@ -23,7 +23,7 @@
 - name: Install required software
   apt:
     name={{ item }}
-    state=latest
+    state=present
     update_cache=yes
   with_items:
     - acl
@@ -42,6 +42,7 @@
     - libwww-perl
     - make
     - muscle
+    - nfs-common
     - pkg-config
     - python-dev
     - python-setuptools
@@ -53,3 +54,4 @@
     - velvet
     - velvetoptimiser
     - zlib1g-dev
+    - zsh

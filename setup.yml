@@ -1,18 +1,21 @@
 ---
-#
-# Set up timavo
-#
+#########################################################
+# Set up dolina (NFS server and backing up with Tivoli) #
+#########################################################
 
-- hosts: uzh
+- hosts: servers
   remote_user: ubuntu
   become: yes
 
-  roles:
-      - pre
-      - seqtools
-      - conda
-
   tasks:
+
+    - hostname:
+        name: dolina
+
+    - name: Ensure sysadmin SSH keys are authorized for user 'ubuntu'
+      authorized_key: user="ubuntu" key="{{ item }}"
+      with_file:
+        - ~/.ssh/oct2016.key.pub
 
     - name: Ensure sysadmin SSH keys are authorized for user 'ubuntu'
       authorized_key: user="ubuntu" key="{{ item }}"
@@ -39,6 +42,84 @@
         src: /dev/vdd
         state: mounted
         fstype: ext4
+
+    - name: Install required software
+      apt:
+        name={{ item }}
+        state=present
+        update_cache=yes
+      with_items:
+        - aptitude
+        - nfs-common
+        - nfs-kernel-server
+
+    - name: Create ngs group
+      tags:
+        - passwd
+      group:
+        name={{item.name}}
+        gid={{item.gid}}
+        state=present
+      with_items:
+        - { name: 'ngs', gid: '1001' }
+
+    # http://bencane.com/2012/05/27/acl-using-access-control-lists-on-linux/
+    - name: Set acl such that newly created files have right permissions
+      acl:
+        name={{item}}
+        entity=ngs
+        etype=group
+        permissions=rwx
+        default=yes
+        state=present
+      with_items:
+          - /data
+          - /analyses
+
+    - name: Set up /etc/exports
+      template: src=exports.j2 dest=/etc/exports owner=root group=root
+
+    - name: Restart nfs server
+      service: name=nfs-kernel-server state=restarted
+
+
+######################################################
+# Set up timavo (computational server for our group) #
+######################################################
+
+- hosts: clients
+  remote_user: ubuntu
+  become: yes
+
+  roles:
+      - pre
+      - seqtools
+      - conda
+
+  tasks:
+
+    - hostname:
+        name: timavo
+
+    - name: Create mountable dir
+      file: path=/rv_home state=directory mode=0755 owner=root group=root
+
+    - name: Mount volumes from dolina with nfs
+      mount:
+        name={{ item }}
+        src=172.23.98.199:{{ item }}
+        state=mounted
+        fstype=nfs
+        opts=acl
+      with_items:
+        - /rv_home
+        - /data
+        - /analyses
+
+    - name: Ensure sysadmin SSH keys are authorized for user 'ubuntu'
+      authorized_key: user="ubuntu" key="{{ item }}"
+      with_file:
+        - ~/.ssh/oct2016.key.pub
 
     - name: Update apt-key to install mongo DB
       apt_key: keyserver=hkp://keyserver.ubuntu.com:80 id=EA312927
@@ -69,11 +150,12 @@
       tags:
         - passwd
       group:
-        name={{item}}
+        name={{item.name}}
+        gid={{item.gid}}
         state=present
       with_items:
-        - ngs
-        - docker
+        - { name: 'ngs', gid: '1001' }
+        - { name: 'docker', gid: '117' }
 
     - name: Create accounts
       tags:
@@ -85,36 +167,35 @@
         home="/rv_home/{{item.name}}"
         shell={{item.shell}}
       with_items:
-        - { name: 'ozagordi', group: 'ngs', groups: 'docker', shell: '/bin/bash' }
+        - { name: 'ozagordi', group: 'ngs', groups: 'docker', shell: '/usr/bin/zsh' }
         - { name: 'mihuber',  group: 'ngs', groups: 'docker', shell: '/bin/bash' }
-        - { name: 'geifa',    group: 'ngs', groups: 'docker', shell: '/bin/bash' }
         - { name: 'merles',   group: 'ngs', groups: 'docker', shell: '/bin/bash' }
         - { name: 'vkufne',   group: 'ngs', groups: 'docker', shell: '/bin/bash' }
-        - { name: 'dlewan',   group: 'ngs', groups: 'docker', shell: '/bin/bash' }
+        - { name: 'stschmu',   group: 'ngs', groups: 'docker', shell: '/bin/bash' }
 
     - name: Add ssh authorized keys
       authorized_key:
           user={{item.user}}
           key={{item.key}}
       with_items:
-          - { user: 'ozagordi', key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_rsa.pub') }}" }
+          - { user: 'ozagordi', key: "{{ lookup('file', 'keys/ozagordi') }}" }
           - { user: 'mihuber', key: "{{ lookup('file', 'keys/mihuber') }}" }
-          - { user: 'geifa', key: "{{ lookup('file', 'keys/geifa') }}" }
           - { user: 'merles', key: "{{ lookup('file', 'keys/merles') }}" }
           - { user: 'vkufne', key: "{{ lookup('file', 'keys/vkufne') }}" }
-          - { user: 'dlewan', key: "{{ lookup('file', 'keys/dlewan') }}" }
+          - { user: 'stschmu', key: "{{ lookup('file', 'keys/stschmu') }}" }
 
-    - name: Add directories to PATH
-      lineinfile: dest=/rv_home/{{item.user}}/.bash_profile
-                  line="export PATH=$PATH:/usr/local/edirect:/usr/local/vcflib:/opt/miniconda/bin"
-                  create=yes
+    - name: Add directories to PATH and set umask
+      blockinfile:
+          dest: /rv_home/{{ item.user }}/.profile
+          block: |
+            export PATH=$PATH:/usr/local/edirect:/usr/local/vcflib:/opt/miniconda/bin
+            umask 003
       with_items:
         - { user: "ozagordi" }
         - { user: "mihuber" }
-        - { user: "geifa" }
         - { user: "merles" }
         - { user: "vkufne" }
-        - { user: "dlewan" }
+        - { user: "stschmu" }
 
     - name: Change group of mounted directories
       file:
@@ -127,14 +208,14 @@
           - /analyses
 
     # http://bencane.com/2012/05/27/acl-using-access-control-lists-on-linux/
-    - name: Seta acl such that newly created files have right permissions
-      acl:
-        name={{item}}
-        entity=ngs
-        etype=group
-        permissions=rwx
-        default=yes
-        state=present
-      with_items:
-          - /data
-          - /analyses
+    # - name: Set acl such that newly created files have right permissions
+    #   acl:
+    #     name={{item}}
+    #     entity=ngs
+    #     etype=group
+    #     permissions=rwx
+    #     default=yes
+    #     state=present
+    #   with_items:
+    #       - /data
+    #       - /analyses
