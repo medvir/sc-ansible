@@ -172,6 +172,7 @@
         - { name: 'merles',   group: 'ngs', groups: 'docker', shell: '/bin/bash' }
         - { name: 'vkufne',   group: 'ngs', groups: 'docker', shell: '/bin/bash' }
         - { name: 'stschmu',   group: 'ngs', groups: 'docker', shell: '/bin/bash' }
+        - { name: 'sbsuser',   group: 'ngs', groups: 'docker', shell: '/bin/bash' }
 
     - name: Add ssh authorized keys
       authorized_key:
@@ -183,6 +184,18 @@
           - { user: 'merles', key: "{{ lookup('file', 'keys/merles') }}" }
           - { user: 'vkufne', key: "{{ lookup('file', 'keys/vkufne') }}" }
           - { user: 'stschmu', key: "{{ lookup('file', 'keys/stschmu') }}" }
+
+    - name: Two keys for sbsuser because two MiSeq machines are used
+      authorized_key:
+          user: sbsuser
+          state: present
+          key: '{{ item }}'
+      with_file:
+        - keys/M01274
+        - keys/M02081
+
+#        - "{{ lookup('file', 'keys/M01274') }}"
+#        - "{{ lookup('file', 'keys/M02081') }}"
 
     - name: Add directories to PATH and set umask
       blockinfile:
