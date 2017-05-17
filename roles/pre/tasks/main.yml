@@ -47,6 +47,7 @@
     - python-dev
     - python-setuptools
     - r-cran-ggplot2
+    - samba
     - seqtk
     - smalt
     - tabix
