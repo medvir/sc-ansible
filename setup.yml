@@ -220,6 +220,20 @@
           - /data
           - /analyses
 
+    - name: Samba configuration
+      template:
+        dest: /etc/samba/smb.conf
+        src: smb.conf.j2
+        validate: 'testparm -s %s'
+      notify:
+        - Restart Samba services
+      tags: samba
+
+  handlers:
+    - name: Restart Samba services
+      service:
+        name=smbd state=restarted
+
     # http://bencane.com/2012/05/27/acl-using-access-control-lists-on-linux/
     # - name: Set acl such that newly created files have right permissions
     #   acl:
