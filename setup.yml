@@ -259,6 +259,21 @@
       with_file:
         - ~/.ssh/oct2016.key.pub
 
+    - name: Install required software
+      apt:
+        name={{ item }}
+        state=present
+        update_cache=yes
+      with_items:
+        - texlive
+
+    - name: Install latex classe and packages
+      shell: |
+        tlmgr init-usertree
+        tlmgr option repository ftp://tug.org/historic/systems/texlive/2015/tlnet-final
+        tlmgr install newlfm
+        tlmgr install lastpage
+
     - name: git checkout of pybis
       git:
         repo: https://sissource.ethz.ch/sispub/pybis.git
