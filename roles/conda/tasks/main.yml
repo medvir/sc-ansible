@@ -18,9 +18,9 @@
 
 - name: Download miniconda
   get_url:
-    url: https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+    url: https://repo.continuum.io/miniconda/Miniconda3-4.3.21-Linux-x86_64.sh
     dest: /tmp/miniconda.sh
-    checksum: sha1:f43e58f0f2d2f64dcd4924edb8fbd4f4654db086
+    checksum: md5:c1c15d3baba15bf50293ae963abef853
   register: get_miniconda
 
 - name: Install miniconda and packages

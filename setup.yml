@@ -229,10 +229,103 @@
         - Restart Samba services
       tags: samba
 
+    - name: set default locale
+      lineinfile: dest=/etc/default/locale
+        regexp="LC_ALL"
+        line="LC_ALL=\"en_US.UTF-8\""
+
   handlers:
     - name: Restart Samba services
       service:
         name=smbd state=restarted
+
+
+
+#################################################
+# Set up nevoso (helper for pybis related jobs) #
+#################################################
+
+- hosts: pybis
+  remote_user: ubuntu
+  become: yes
+
+  tasks:
+
+    - hostname:
+        name: nevoso
+
+    - name: Ensure sysadmin SSH keys are authorized for user 'ubuntu'
+      authorized_key: user="ubuntu" key="{{ item }}"
+      with_file:
+        - ~/.ssh/oct2016.key.pub
+
+    - name: git checkout of pybis
+      git:
+        repo: https://sissource.ethz.ch/sispub/pybis.git
+        dest: /home/ubuntu/pybis
+        version: 0602b4db1496c40d21d6e6e9f10992b173380ab2
+
+    - name: Download miniconda
+      get_url:
+        url: https://repo.continuum.io/miniconda/Miniconda3-4.3.21-Linux-x86_64.sh
+        dest: /tmp/miniconda.sh
+        checksum: md5:c1c15d3baba15bf50293ae963abef853
+      register: get_miniconda
+
+    - name: Install miniconda and minvar  # first py35 as minvar only available there
+      shell: |
+        if [ ! -x "/opt/miniconda/bin/conda" ]; then
+            cd /tmp
+            bash miniconda.sh -b -p /opt/miniconda
+            hash -r && \
+                /opt/miniconda/bin/conda config --set always_yes yes --set changeps1 no && \
+                /opt/miniconda/bin/conda update -q conda
+            /opt/miniconda/bin/conda install -q python=3.5
+            /opt/miniconda/bin/conda config --add channels defaults
+            /opt/miniconda/bin/conda config --add channels conda-forge
+            /opt/miniconda/bin/conda config --add channels bioconda
+            /opt/miniconda/bin/conda install minvar
+        fi
+      args:
+          executable: /bin/bash
+
+
+    - name: Install pybis
+      shell: |
+        cd /home/ubuntu/pybis/src/python/PyBis &&
+        /opt/miniconda/bin/python setup.py install --record installed_files.txt
+
+    - name: Add directories to PATH and set umask
+      blockinfile:
+          dest: /home/ubuntu/.profile
+          block: |
+            export PATH=/opt/miniconda/bin:$PATH
+            umask 003
+
+    - name: git checkout of DMS
+      git:
+        repo: https://github.com/medvir/DMS.git
+        dest: /home/ubuntu/DMS
+        #version: 0602b4db1496c40d21d6e6e9f10992b173380ab2
+
+    #
+    # SW not available from std Ubuntu repos installed from a script
+    #
+
+    - name: Install rmate standalone from https://github.com/aurora/rmate
+      get_url:
+        url: https://raw.githubusercontent.com/aurora/rmate/master/rmate
+        dest: /usr/local/bin/rmate
+        mode: a+x
+
+#        - "{{ lookup('file', 'keys/M01274') }}"
+#        - "{{ lookup('file', 'keys/M02081') }}"
+
+    - name: set default locale
+      lineinfile: dest=/etc/default/locale
+        regexp="LC_ALL"
+        line="LC_ALL=\"en_US.UTF-8\""
+
 
     # http://bencane.com/2012/05/27/acl-using-access-control-lists-on-linux/
     # - name: Set acl such that newly created files have right permissions
