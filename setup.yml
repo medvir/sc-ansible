@@ -259,6 +259,12 @@
       with_file:
         - ~/.ssh/oct2016.key.pub
 
+    - name: Update and upgrade apt packages
+      apt:
+        upgrade: yes
+        update_cache: yes
+        cache_valid_time: 86400 #One day
+
     - name: Install required software
       apt:
         name={{ item }}
@@ -267,12 +273,15 @@
       with_items:
         - texlive
 
-    - name: Install latex classe and packages
-      shell: |
-        tlmgr init-usertree
-        tlmgr option repository ftp://tug.org/historic/systems/texlive/2015/tlnet-final
-        tlmgr install newlfm
-        tlmgr install lastpage
+    # commented out because it caused long process everytime
+    # - name: Install latex classe and packages
+    #   shell: |
+    #     tlmgr init-usertree
+    #     tlmgr option repository ftp://tug.org/historic/systems/texlive/2015/tlnet-final
+    #     tlmgr install newlfm
+    #     tlmgr install lastpage
+    #   become: yes
+    #   become_user: ubuntu
 
     - name: git checkout of pybis
       git:
@@ -304,6 +313,13 @@
       args:
           executable: /bin/bash
 
+    - name: Change group of /opt/miniconda
+      file:
+        path: /opt/miniconda
+        owner: ubuntu
+        group: ubuntu
+        mode: 0775
+        recurse: yes
 
     - name: Install pybis
       shell: |
@@ -321,6 +337,8 @@
       git:
         repo: https://github.com/medvir/DMS.git
         dest: /home/ubuntu/DMS
+      become: yes
+      become_user: ubuntu
         #version: 0602b4db1496c40d21d6e6e9f10992b173380ab2
 
     #
