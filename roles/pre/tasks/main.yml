@@ -24,7 +24,7 @@
   apt:
     name={{ item }}
     state=present
-    update_cache=yes
+    update_cache=no
   with_items:
     - acl
     - automake
@@ -35,11 +35,13 @@
     - default-jre
     - docker.io
     - emboss
+    - hdf5-tools
     - libfreetype6-dev
     - libhdf5-serial-dev
     - libncurses5-dev
     - libtool
     - libwww-perl
+    - libxml2-dev
     - make
     - muscle
     - nfs-common
@@ -51,6 +53,7 @@
     - seqtk
     - smalt
     - tabix
+    - texlive-latex-base
     - unzip
     - velvet
     - velvetoptimiser

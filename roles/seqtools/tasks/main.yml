@@ -122,6 +122,31 @@
     url: https://github.com/broadinstitute/picard/releases/download/2.7.1/picard.jar
     dest: /usr/local/picard-tools/picard.jar
 
+- name: Install last
+  shell: |
+    if [ ! -x "$(command -v lastal)" ]; then
+        wget http://last.cbrc.jp/last-880.zip && unzip last-880.zip && rm last-880.zip
+        cd last-880 && make && make install
+    fi
+  args:
+    executable: /bin/bash
+
+- name: Install nanook
+  shell: |
+    if [ ! -x "$(command -v nanook)" ]; then
+        set -ex
+        cd /opt/
+        if [ -d NanoOk ]; then
+            rm -r NanoOK
+        fi
+        wget -nv -O - https://github.com/TGAC/NanoOK/archive/v1.26.tar.gz | tar -xz
+        mv NanoOK-1.26 NanoOK
+    fi
+  args:
+    executable: /bin/bash
+
+
+
 # - name: Install poretools
 #   shell: |
 #     if [ ! -x "/usr/local/poretools" ]; then

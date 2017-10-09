@@ -93,6 +93,7 @@
 
   roles:
       - pre
+      - R
       - seqtools
       - conda
 
@@ -132,7 +133,7 @@
     - name: Update repositories cache and install "mongdb" package
       apt:
         name: mongodb-org
-        update_cache: yes
+        update_cache: no
 
     #
     # SW not available from std Ubuntu repos installed from a script
@@ -201,7 +202,8 @@
       blockinfile:
           dest: /rv_home/{{ item.user }}/.profile
           block: |
-            export PATH=$PATH:/usr/local/edirect:/usr/local/vcflib:/opt/miniconda/bin
+            export NANOOK_DIR=/opt/NanoOK
+            export PATH=$PATH:/usr/local/edirect:/usr/local/vcflib:/opt/miniconda/bin:/opt/NanoOK/bin
             umask 003
       with_items:
         - { user: "ozagordi" }
@@ -330,7 +332,8 @@
       blockinfile:
           dest: /home/ubuntu/.profile
           block: |
-            export PATH=/opt/miniconda/bin:$PATH
+            export NANOOK_DIR=/opt/NanoOK
+            export PATH=/opt/miniconda/bin:/opt/NanoOK:$PATH
             umask 003
 
     - name: git checkout of DMS
