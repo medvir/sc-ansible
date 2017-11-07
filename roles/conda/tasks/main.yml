@@ -31,8 +31,10 @@
         hash -r && \
             /opt/miniconda/bin/conda config --set always_yes yes --set changeps1 no && \
             /opt/miniconda/bin/conda update -q conda
-        /opt/miniconda/bin/conda install -q Biopython pandas seaborn scipy
     fi
+    /opt/miniconda/bin/conda install -q Biopython pandas seaborn scipy jupyter
+    /opt/miniconda/bin/pip install dms_tools2
+
   args:
       executable: /bin/bash
 

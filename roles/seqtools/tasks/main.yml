@@ -133,13 +133,13 @@
 
 - name: Install nanook
   shell: |
-    if [ ! -x "$(command -v nanook)" ]; then
+    if [ ! -x "/opt/NanoOK/bin/nanook" ]; then
         set -ex
         cd /opt/
-        if [ -d NanoOk ]; then
+        if [ -d NanoOK ]; then
             rm -r NanoOK
         fi
-        if [ -d NanoOk-1.26 ]; then
+        if [ -d NanoOK-1.26 ]; then
             rm -r NanoOK-1.26
         fi
         wget -nv -O - https://github.com/TGAC/NanoOK/archive/v1.26.tar.gz | tar -xz
