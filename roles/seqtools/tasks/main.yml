@@ -139,6 +139,9 @@
         if [ -d NanoOk ]; then
             rm -r NanoOK
         fi
+        if [ -d NanoOk-1.26 ]; then
+            rm -r NanoOK-1.26
+        fi
         wget -nv -O - https://github.com/TGAC/NanoOK/archive/v1.26.tar.gz | tar -xz
         mv NanoOK-1.26 NanoOK
     fi

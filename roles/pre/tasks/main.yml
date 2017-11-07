@@ -57,5 +57,6 @@
     - unzip
     - velvet
     - velvetoptimiser
+    - xzdec
     - zlib1g-dev
     - zsh
