@@ -46,7 +46,7 @@
   shell: |
     if [ ! -x "$(command -v lofreq)" ]; then
         cd /tmp
-        # wget -nv -O - https://github.com/CSB5/lofreq/archive/v2.1.2.tar.gz | tar -xz
+        # wget -nv -O - https://github.com/CSB5/lofreq/archive/v2.1.3.1.tar.gz | tar -xz
         git clone https://github.com/ozagordi/lofreq.git
         # cd lofreq-2.1.2
         cd lofreq
