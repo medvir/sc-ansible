@@ -285,6 +285,9 @@
     #     tlmgr option repository ftp://tug.org/historic/systems/texlive/2015/tlnet-final
     #     tlmgr install newlfm
     #     tlmgr install lastpage
+    #     tlmgr install datetime2
+    #     tlmgr install tracklang
+    #     tlmgr install xcolor
     #   become: yes
     #   become_user: ubuntu
 
