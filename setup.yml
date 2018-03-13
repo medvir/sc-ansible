@@ -173,8 +173,9 @@
         - { name: 'merles',   group: 'ngs', groups: 'docker', shell: '/bin/bash' }
         - { name: 'vkufne',   group: 'ngs', groups: 'docker', shell: '/bin/bash' }
         - { name: 'stschmu',  group: 'ngs', groups: 'docker', shell: '/bin/bash' }
-        - { name: 'sbsuser',  group: 'ngs', groups: 'docker', shell: '/bin/bash' }
         - { name: 'mgloeg',   group: 'ngs', groups: 'docker', shell: '/bin/bash' }
+        - { name: 'sbsuser',  group: 'ngs', groups: 'docker', shell: '/bin/bash' }
+        - { name: 'minion',   group: 'ngs', groups: 'docker', shell: '/bin/bash' }
 
     - name: Add ssh authorized keys
       authorized_key:
@@ -196,9 +197,15 @@
       with_file:
         - keys/M01274
         - keys/M02081
-
 #        - "{{ lookup('file', 'keys/M01274') }}"
-#        - "{{ lookup('file', 'keys/M02081') }}"
+
+    - name: A key for minion to sync data from nanopore laptop
+      authorized_key:
+          user: minion
+          state: present
+          key: '{{ item }}'
+      with_file:
+        - keys/virologyws15
 
     - name: Add directories to PATH and set umask
       blockinfile:
