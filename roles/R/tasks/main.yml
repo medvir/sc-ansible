@@ -27,7 +27,8 @@
   changed_when: "'Added' in r_result.stdout"
   with_items:
     - cowplot
+    - ggthemes
     - gridExtra
     - reshape
+    - seqinr
     - tidyverse
-    - ggthemes
