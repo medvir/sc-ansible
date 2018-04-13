@@ -54,6 +54,7 @@
     - smalt
     - tabix
     - texlive-latex-base
+    - tree
     - unzip
     - velvet
     - velvetoptimiser
