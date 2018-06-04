@@ -212,7 +212,8 @@
           dest: /rv_home/{{ item.user }}/.profile
           block: |
             export NANOOK_DIR=/opt/NanoOK
-            export PATH=$PATH:/usr/local/edirect:/usr/local/vcflib:/opt/miniconda/bin:/opt/NanoOK/bin
+            export PATH=$PATH:/usr/local/edirect:/usr/local/vcflib:/opt/NanoOK/bin
+            . /opt/miniconda/etc/profile.d/conda.sh
             umask 003
       with_items:
         - { user: "ozagordi" }
