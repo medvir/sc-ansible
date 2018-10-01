@@ -1,34 +1,20 @@
-
 ---
 
-- name: Update apt-key to install external repository maintained by CRAN
-  apt_key: keyserver=keyserver.ubuntu.com id=E298A3A825C0D65DFD57CBB651716619E084DAB9
+# - name: r - packages
+#   command: >
+#     Rscript --slave --no-save --no-restore-history -e "if (! ('{{ item }}' %in% installed.packages()[,'Package'])) { install.packages(pkgs='{{ item }}', repos=c('http://ftp.heanet.ie/mirrors/cran.r-project.org/')); print('Added'); } else { print('Already installed'); }"
+#   register: r_result
+#   failed_when: "r_result.rc != 0 or 'had non-zero exit status' in r_result.stderr"
+#   changed_when: "'Added' in r_result.stdout"
+#   with_items:
+#     - dplyr
 
-- name: Add this external repository to database
-  apt_repository:
-      repo: deb https://cran.rstudio.com/bin/linux/ubuntu xenial/
-      state: present
-      update_cache: yes
-
-- name: Install/update required r packages
-  apt:
-    name={{ item }}
-    state=present
-    update_cache=no
-  with_items:
-    - r-base
-    - r-base-dev
-
-- name: r - packages
+- name: bioconductor packages
   command: >
-    Rscript --slave --no-save --no-restore-history -e "if (! ('{{ item }}' %in% installed.packages()[,'Package'])) { install.packages(pkgs='{{ item }}', repos=c('https://stat.ethz.ch/CRAN/')); print('Added'); } else { print('Already installed'); }"
-  register: r_result
-  failed_when: "r_result.rc != 0 or 'had non-zero exit status' in r_result.stderr"
-  changed_when: "'Added' in r_result.stdout"
+    Rscript --slave --no-save --no-restore-history -e "source('http://bioconductor.org/biocLite.R'); if (! ('{{ item }}' %in% installed.packages()[,'Package'])) { biocLite('{{ item }}'); print('Added'); } else { print('Already installed'); }"
+  register: b_result
+  failed_when: "b_result.rc != 0 or 'had non-zero exit status' in b_result.stderr"
+  changed_when: "'Added' in b_result.stdout"
   with_items:
-    - cowplot
-    - ggthemes
-    - gridExtra
-    - reshape
-    - seqinr
-    - tidyverse
+    - DESeq2
+    - edgeR
