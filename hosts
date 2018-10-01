@@ -1,5 +1,8 @@
-[sb74]
-148.251.184.139
-
-[sb74:vars]
+[clients]
+timavo
+[servers]
+dolina
+[pybis]
+nevoso
+[servers:vars]
 ansible_python_interpreter=/usr/bin/python3

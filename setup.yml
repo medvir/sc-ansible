@@ -1,23 +1,140 @@
 ---
-#
-# Set up sb74
-#
+#########################################################
+# Set up dolina (NFS server and backing up with Tivoli) #
+#########################################################
 
-- hosts: sb74
-  remote_user: root
+- hosts: servers
+  remote_user: ubuntu
   become: yes
 
-  #roles:
-      # - pre
-      # - R
-      # - conda
-      # - seqtools
+  tasks:
+
+    - hostname:
+        name: dolina
+
+    - name: Ensure sysadmin SSH keys are authorized for user 'ubuntu'
+      authorized_key: user="ubuntu" key="{{ item }}"
+      with_file:
+        - ~/.ssh/oct2016.key.pub
+
+    - name: Ensure sysadmin SSH keys are authorized for user 'ubuntu'
+      authorized_key: user="ubuntu" key="{{ item }}"
+      with_file:
+        - ~/.ssh/oct2016.key.pub
+
+    - name: Mount bora on /rv_home
+      mount:
+        name: /rv_home
+        src: /dev/vdb
+        state: mounted
+        fstype: ext4
+
+    - name: Mount passat on /data
+      mount:
+        name: /data
+        src: /dev/vdc
+        state: mounted
+        fstype: ext4
+
+    - name: Mount passat on /analyses
+      mount:
+        name: /analyses
+        src: /dev/vdd
+        state: mounted
+        fstype: ext4
+
+    - name: Install required software
+      apt:
+        name={{ item }}
+        state=present
+        update_cache=yes
+      with_items:
+        - aptitude
+        - nfs-common
+        - nfs-kernel-server
+
+    - name: Create ngs group
+      tags:
+        - passwd
+      group:
+        name={{item.name}}
+        gid={{item.gid}}
+        state=present
+      with_items:
+        - { name: 'ngs', gid: '1001' }
+
+    # http://bencane.com/2012/05/27/acl-using-access-control-lists-on-linux/
+    - name: Set acl such that newly created files have right permissions
+      acl:
+        name={{item}}
+        entity=ngs
+        etype=group
+        permissions=rwx
+        default=yes
+        state=present
+      with_items:
+          - /data
+          - /analyses
+
+    - name: Set up /etc/exports
+      template: src=exports.j2 dest=/etc/exports owner=root group=root
+
+    - name: Restart nfs server
+      service: name=nfs-kernel-server state=restarted
+
+
+######################################################
+# Set up timavo (computational server for our group) #
+######################################################
+
+- hosts: clients
+  remote_user: ubuntu
+  become: yes
+
+  roles:
+      - pre
+      - R
+      - seqtools
+      - conda
 
   tasks:
-    # - name: Ensure sysadmin SSH keys are authorized for user 'ubuntu'
-    #   authorized_key: user="ubuntu" key="{{ item }}"
-    #   with_file:
-    #     - ~/.ssh/oct2016.key.pub
+
+    - hostname:
+        name: timavo
+
+    - name: Create mountable dir
+      file: path=/rv_home state=directory mode=0755 owner=root group=root
+
+    - name: Mount volumes from dolina with nfs
+      mount:
+        name={{ item }}
+        src=172.23.98.199:{{ item }}
+        state=mounted
+        fstype=nfs
+        opts=acl
+      with_items:
+        - /rv_home
+        - /data
+        - /analyses
+
+    - name: Ensure sysadmin SSH keys are authorized for user 'ubuntu'
+      authorized_key: user="ubuntu" key="{{ item }}"
+      with_file:
+        - ~/.ssh/oct2016.key.pub
+
+    - name: Update apt-key to install mongo DB
+      apt_key: keyserver=hkp://keyserver.ubuntu.com:80 id=EA312927
+
+    - name: Create a list file for mongo DB
+      lineinfile: dest=/etc/apt/sources.list.d/mongodb-org-3.2.list
+                  line="deb http://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.2 multiverse"
+                  create=yes
+
+    - name: Update repositories cache and install "mongdb" package
+      apt:
+        name: mongodb-org
+        update_cache: no
+
     #
     # SW not available from std Ubuntu repos installed from a script
     #
@@ -30,15 +147,16 @@
 
     # Users
 
-    - name: Create engene group
+    - name: Create ngs group
       tags:
         - passwd
       group:
-        name={{item}}
+        name={{item.name}}
+        gid={{item.gid}}
         state=present
       with_items:
-        - engene
-        - docker
+        - { name: 'ngs', gid: '1001' }
+        - { name: 'docker', gid: '117' }
 
     - name: Create accounts
       tags:
@@ -47,49 +165,227 @@
         name={{item.name}}
         group={{item.group}}
         groups={{item.groups}}
+        home="/rv_home/{{item.name}}"
         shell={{item.shell}}
       with_items:
-        - { name: 'ozagordi', group: 'engene', groups: 'docker', shell: '/bin/bash' }
-        - { name: 'comoglif',    group: 'engene', groups: 'docker', shell: '/bin/bash' }
-        - { name: 'csievers',  group: 'engene', groups: 'docker', shell: '/bin/bash' }
+        - { name: 'ozagordi', group: 'ngs', groups: 'docker', shell: '/usr/bin/zsh' }
+        - { name: 'mihuber',  group: 'ngs', groups: 'docker', shell: '/bin/bash' }
+        - { name: 'merles',   group: 'ngs', groups: 'docker', shell: '/bin/bash' }
+        - { name: 'vkufne',   group: 'ngs', groups: 'docker', shell: '/bin/bash' }
+        - { name: 'stschmu',  group: 'ngs', groups: 'docker', shell: '/bin/bash' }
+        - { name: 'mgloeg',   group: 'ngs', groups: 'docker', shell: '/bin/bash' }
+        - { name: 'sbsuser',  group: 'ngs', groups: 'docker', shell: '/bin/bash' }
+        - { name: 'minion',   group: 'ngs', groups: 'docker', shell: '/bin/bash' }
 
     - name: Add ssh authorized keys
       authorized_key:
           user={{item.user}}
           key={{item.key}}
       with_items:
-          - { user: 'ozagordi', key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/hetzner.pub') }}" }
-          - { user: 'comoglif', key: "{{ lookup('file', 'keys/comoglif') }}" }
-          - { user: 'csievers', key: "{{ lookup('file', 'keys/csievers') }}" }
+          - { user: 'ozagordi', key: "{{ lookup('file', 'keys/ozagordi') }}" }
+          - { user: 'mihuber', key: "{{ lookup('file', 'keys/mihuber') }}" }
+          - { user: 'merles', key: "{{ lookup('file', 'keys/merles') }}" }
+          - { user: 'vkufne', key: "{{ lookup('file', 'keys/vkufne') }}" }
+          - { user: 'stschmu', key: "{{ lookup('file', 'keys/stschmu') }}" }
+          - { user: 'mgloeg', key: "{{ lookup('file', 'keys/mgloeg') }}" }
 
-    # - name: Add directories to PATH
-    #   lineinfile: dest=/home/{{item.user}}/.bash_profile
-    #               line="export PATH=$PATH:/usr/local/edirect:/usr/local/vcflib:/opt/miniconda/bin"
-    #               create=yes
-    #   with_items:
-    #     - { user: "ozagordi" }
-    #     - { user: "comoglif" }
-    #     - { user: "csievers" }
+    - name: Two keys for sbsuser because two MiSeq machines are used
+      authorized_key:
+          user: sbsuser
+          state: present
+          key: '{{ item }}'
+      with_file:
+        - keys/M01274
+        - keys/M02081
+#        - "{{ lookup('file', 'keys/M01274') }}"
+
+    - name: A key for minion to sync data from nanopore laptop
+      authorized_key:
+          user: minion
+          state: present
+          key: '{{ item }}'
+      with_file:
+        - keys/virologyws15
+
+    - name: Add directories to PATH and set umask
+      blockinfile:
+          dest: /rv_home/{{ item.user }}/.profile
+          block: |
+            export NANOOK_DIR=/opt/NanoOK
+            export PATH=$PATH:/usr/local/edirect:/usr/local/vcflib:/opt/NanoOK/bin
+            . /opt/miniconda/etc/profile.d/conda.sh
+            umask 003
+      with_items:
+        - { user: "ozagordi" }
+        - { user: "mihuber" }
+        - { user: "merles" }
+        - { user: "vkufne" }
+        - { user: "stschmu" }
+        - { user: "mgloeg" }
 
     - name: Change group of mounted directories
       file:
         path={{item}}
-        owner=root
-        group=engene
+        owner=ubuntu
+        group=ngs
         mode=0775
       with_items:
           - /data
           - /analyses
 
-    # http://bencane.com/2012/05/27/acl-using-access-control-lists-on-linux/
-    - name: Seta acl such that newly created files have right permissions
-      acl:
-        name={{item}}
-        entity=engene
-        etype=group
-        permissions=rwx
-        default=yes
+    - name: Samba configuration
+      template:
+        dest: /etc/samba/smb.conf
+        src: smb.conf.j2
+        validate: 'testparm -s %s'
+      notify:
+        - Restart Samba services
+      tags: samba
+
+    - name: set default locale
+      lineinfile: dest=/etc/default/locale
+        regexp="LC_ALL"
+        line="LC_ALL=\"en_US.UTF-8\""
+
+  handlers:
+    - name: Restart Samba services
+      service:
+        name=smbd state=restarted
+
+
+
+#################################################
+# Set up nevoso (helper for pybis related jobs) #
+#################################################
+
+- hosts: pybis
+  remote_user: ubuntu
+  become: yes
+
+  tasks:
+
+    - hostname:
+        name: nevoso
+
+    - name: Ensure sysadmin SSH keys are authorized for user 'ubuntu'
+      authorized_key: user="ubuntu" key="{{ item }}"
+      with_file:
+        - ~/.ssh/oct2016.key.pub
+
+    - name: Update and upgrade apt packages
+      apt:
+        upgrade: yes
+        update_cache: yes
+        cache_valid_time: 86400 #One day
+
+    - name: Install required software
+      apt:
+        name={{ item }}
         state=present
+        update_cache=yes
       with_items:
-          - /data
-          - /analyses
+        - texlive
+
+    # commented out because it caused long process everytime
+    # - name: Install latex classe and packages
+    #   shell: |
+    #     tlmgr init-usertree
+    #     tlmgr option repository ftp://tug.org/historic/systems/texlive/2015/tlnet-final
+    #     tlmgr install newlfm
+    #     tlmgr install lastpage
+    #     tlmgr install datetime2
+    #     tlmgr install tracklang
+    #     tlmgr install xcolor
+    #   become: yes
+    #   become_user: ubuntu
+
+    - name: git checkout of pybis
+      git:
+        repo: https://sissource.ethz.ch/sispub/pybis.git
+        dest: /home/ubuntu/pybis
+        version: 0602b4db1496c40d21d6e6e9f10992b173380ab2
+
+    - name: Download miniconda
+      get_url:
+        url: https://repo.continuum.io/miniconda/Miniconda3-4.3.21-Linux-x86_64.sh
+        dest: /tmp/miniconda.sh
+        checksum: md5:c1c15d3baba15bf50293ae963abef853
+      register: get_miniconda
+
+    - name: Install miniconda and minvar  # first py35 as minvar only available there
+      shell: |
+        if [ ! -x "/opt/miniconda/bin/conda" ]; then
+            cd /tmp
+            bash miniconda.sh -b -p /opt/miniconda
+            hash -r && \
+                /opt/miniconda/bin/conda config --set always_yes yes --set changeps1 no && \
+                /opt/miniconda/bin/conda update -q conda
+            /opt/miniconda/bin/conda install -q python=3.5
+            /opt/miniconda/bin/conda config --add channels defaults
+            /opt/miniconda/bin/conda config --add channels conda-forge
+            /opt/miniconda/bin/conda config --add channels bioconda
+            /opt/miniconda/bin/conda install minvar
+        fi
+      args:
+          executable: /bin/bash
+
+    - name: Change group of /opt/miniconda
+      file:
+        path: /opt/miniconda
+        owner: ubuntu
+        group: ubuntu
+        mode: 0775
+        recurse: yes
+
+    - name: Install pybis
+      shell: |
+        cd /home/ubuntu/pybis/src/python/PyBis &&
+        /opt/miniconda/bin/python setup.py install --record installed_files.txt
+
+    - name: Add directories to PATH and set umask
+      blockinfile:
+          dest: /home/ubuntu/.profile
+          block: |
+            export NANOOK_DIR=/opt/NanoOK
+            export PATH=/opt/miniconda/bin:/opt/NanoOK:$PATH
+            umask 003
+
+    - name: git checkout of DMS
+      git:
+        repo: https://github.com/medvir/DMS.git
+        dest: /home/ubuntu/DMS
+      become: yes
+      become_user: ubuntu
+        #version: 0602b4db1496c40d21d6e6e9f10992b173380ab2
+
+    #
+    # SW not available from std Ubuntu repos installed from a script
+    #
+
+    - name: Install rmate standalone from https://github.com/aurora/rmate
+      get_url:
+        url: https://raw.githubusercontent.com/aurora/rmate/master/rmate
+        dest: /usr/local/bin/rmate
+        mode: a+x
+
+#        - "{{ lookup('file', 'keys/M01274') }}"
+#        - "{{ lookup('file', 'keys/M02081') }}"
+
+    - name: set default locale
+      lineinfile: dest=/etc/default/locale
+        regexp="LC_ALL"
+        line="LC_ALL=\"en_US.UTF-8\""
+
+
+    # http://bencane.com/2012/05/27/acl-using-access-control-lists-on-linux/
+    # - name: Set acl such that newly created files have right permissions
+    #   acl:
+    #     name={{item}}
+    #     entity=ngs
+    #     etype=group
+    #     permissions=rwx
+    #     default=yes
+    #     state=present
+    #   with_items:
+    #       - /data
+    #       - /analyses

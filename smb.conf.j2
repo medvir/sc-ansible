@@ -1,0 +1,37 @@
+# File managed by Ansible, manual edits will be lost
+# Global parameters
+[global]
+    workgroup = VIROLOGY
+    server string = Samba %v on %L, %h server
+    security = user
+    browsable = yes
+    log level = 1
+    unix charset = UTF8
+    netbios name = timavo
+    name resolve order = host bcast
+    null passwords = no
+    encrypt passwords = yes
+
+[homes]
+    browsable = no
+    path = %H
+    writable = yes
+
+[data]
+    comment = Data directory
+    path = /data
+    read only = yes
+    guest ok = no
+    create mask = 0660
+    directory mask = 0770
+    valid users = @ngs
+    force group = ngs
+    browsable = yes
+
+[analyses]
+    comment = Results directory
+    path = /analyses
+    writable = yes
+    guest ok = no
+    force group = ngs
+    browsable = yes

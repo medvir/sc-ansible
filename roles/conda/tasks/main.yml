@@ -2,15 +2,15 @@
 - name: Change group of /opt
   file:
     path: /opt
-    owner: root
-    group: engene
+    owner: ubuntu
+    group: ngs
     mode: 0775
 
 # http://bencane.com/2012/05/27/acl-using-access-control-lists-on-linux/
 - name: Seta acl such that newly created files have right permissions
   acl:
     name: /opt
-    entity: engene
+    entity: ngs
     etype: group
     permissions: rwx
     default: yes
@@ -18,9 +18,9 @@
 
 - name: Download miniconda
   get_url:
-    url: https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+    url: https://repo.continuum.io/miniconda/Miniconda3-4.3.21-Linux-x86_64.sh
     dest: /tmp/miniconda.sh
-    checksum: sha1:2d39718cfd3d2865b54e23e28a9d41cf36bddf4e
+    checksum: md5:c1c15d3baba15bf50293ae963abef853
   register: get_miniconda
 
 - name: Install miniconda and packages
@@ -31,16 +31,41 @@
         hash -r && \
             /opt/miniconda/bin/conda config --set always_yes yes --set changeps1 no && \
             /opt/miniconda/bin/conda update -q conda
-        /opt/miniconda/bin/conda install -q Biopython pandas seaborn scipy
-        /opt/miniconda/bin/conda create -n peaks -c r -c bioconda python=2.7.5 macs2
     fi
+    /opt/miniconda/bin/conda install -q Biopython pandas seaborn scipy jupyter
+    /opt/miniconda/bin/pip install dms_tools2
+
   args:
       executable: /bin/bash
 
 - name: Change group of /opt/miniconda
   file:
     path: /opt/miniconda
-    owner: root
-    group: engene
+    owner: ubuntu
+    group: ngs
     mode: 0775
     recurse: yes
+
+- name: Install VirMet
+  shell: |
+    if [ ! -x "/opt/miniconda/bin/virmet" ]; then
+        cd /opt
+        rm -rf VirMet
+        git clone --depth=50 --branch=master https://github.com/ozagordi/VirMet.git \
+            && cd /opt/VirMet \
+            && /opt/miniconda/bin/python3 setup.py install --record installed_files.txt
+    fi
+  args:
+      executable: /bin/bash
+
+- name: Install MinVar
+  shell: |
+    if [ ! -x "/opt/miniconda/bin/minvar" ]; then
+        cd /opt
+        rm -rf MinVar
+        git clone --depth=50 --branch=master https://github.com/ozagordi/MinVar.git \
+            && cd /opt/MinVar \
+            && /opt/miniconda/bin/python3 setup.py install --record installed_files.txt
+    fi
+  args:
+      executable: /bin/bash
