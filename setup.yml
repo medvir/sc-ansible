@@ -176,6 +176,7 @@
         - { name: 'mgloeg',   group: 'ngs', groups: 'docker', shell: '/bin/bash' }
         - { name: 'sbsuser',  group: 'ngs', groups: 'docker', shell: '/bin/bash' }
         - { name: 'minion',   group: 'ngs', groups: 'docker', shell: '/bin/bash' }
+        - { name: 'mzaher',   group: 'ngs', groups: 'docker', shell: '/bin/bash' }
 
     - name: Add ssh authorized keys
       authorized_key:
@@ -188,6 +189,7 @@
           - { user: 'vkufne', key: "{{ lookup('file', 'keys/vkufne') }}" }
           - { user: 'stschmu', key: "{{ lookup('file', 'keys/stschmu') }}" }
           - { user: 'mgloeg', key: "{{ lookup('file', 'keys/mgloeg') }}" }
+          - { user: 'mzaher', key: "{{ lookup('file', 'keys/mzaher') }}" }
 
     - name: Two keys for sbsuser because two MiSeq machines are used
       authorized_key:
@@ -222,6 +224,7 @@
         - { user: "vkufne" }
         - { user: "stschmu" }
         - { user: "mgloeg" }
+        - { user: "mzaher" }
 
     - name: Change group of mounted directories
       file:
